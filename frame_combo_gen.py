@@ -15,18 +15,18 @@ FPS = 30
 THRESHOLD = 50  # Example threshold for static scene detection
 
 # Download videos using yt-dlp
-def download_videos(search_term, num_results):
+def download_videos(search_terms, num_results_per_term):
     ydl_opts = {
         'format': 'bestvideo[ext=mp4]',  # Ensure videos are downloaded in MP4 format
         'noplaylist': True,
         'outtmpl': './videos/%(title)s.%(ext)s',
         'quiet': False,
         'postprocessors': [],
-        'default_search': 'ytsearch' + str(num_results)
     }
 
     with ydl.YoutubeDL(ydl_opts) as ydl_instance:
-        ydl_instance.download([search_term])
+        for term in search_terms:
+            ydl_instance.download([f"ytsearch{num_results_per_term}:{term}"])
 
 # Extract metadata from video
 def extract_metadata(video_path):
