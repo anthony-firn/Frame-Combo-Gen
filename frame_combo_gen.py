@@ -73,9 +73,10 @@ def extract_frames(scene_path, x, y):
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     extracted_frames = []
 
-    for i in range(0, total_frames, x):
+    # Adjusted logic to handle different 'x' and 'y' values
+    for i in range(0, total_frames, x*y):
         for j in range(y):
-            cap.set(cv2.CAP_PROP_POS_FRAMES, i + j)
+            cap.set(cv2.CAP_PROP_POS_FRAMES, i + j*x)
             ret, frame = cap.read()
             if ret:
                 extracted_frames.append(frame)
