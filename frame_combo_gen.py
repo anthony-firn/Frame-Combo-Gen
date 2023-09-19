@@ -47,9 +47,25 @@ def is_static_scene(scene):
 # Process each scene
 def process_scene(scene, x, y):
     # Extract frames based on x and y
+    frames = extract_frames(scene, x, y)
+    
     # Combine frames into single images
-    # Check for static scenes and remove if necessary
+    combined_image = combine_frames(frames)
+    
     # Organize combined images into dataset folders
+    organize_images(combined_image, x, y)
+
+# Placeholder functions for the new functionalities
+def extract_frames(scene, x, y):
+    # Implement frame extraction logic based on x and y values
+    pass
+
+def combine_frames(frames):
+    # Implement logic to combine frames into a single image
+    pass
+
+def organize_images(image, x, y):
+    # Implement logic to organize images into dataset folders
     pass
 
 # Extract metadata from video
