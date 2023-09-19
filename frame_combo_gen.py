@@ -7,6 +7,8 @@ import json
 from tqdm import tqdm
 import numpy as np
 from pyscenedetect.detectors import ContentDetector
+from pyscenedetect.detectors import ContentDetector
+from pyscenedetect.video_splitter import split_video_ffmpeg
 
 # Constants
 FPS = 30
@@ -37,11 +39,8 @@ def extract_and_split_scenes(video_path, output_dir):
     
     # Split video into scenes and save them
     scene_list = scene_manager.get_scene_list(video_path)
-    for i, scene in enumerate(scene_list):
-        start, end = scene
-        video_manager.save_frames(output_dir, frame_range=(start.get_frames(), end.get_frames()), 
-                                  file_name=f"scene_{i}_%05d.jpg")
-
+    split_video_ffmpeg(video_manager, scene_list, output_dir, video_name="scene_$SCENE_NUMBER.mp4")
+    
     return [os.path.join(output_dir, f"scene_{i}.mp4") for i in range(len(scene_list))]
 
 # Check if scene is static
@@ -86,14 +85,10 @@ def extract_frames(scene_path, x, y):
 
 # Combine frames into a single image
 def combine_frames(frames):
-    # Implement logic to combine frames into a single image
-    # Placeholder logic
-    return np.hstack(frames)
+    return cv2.hconcat(frames)
 
 # Organize combined images into dataset folders
 def organize_images(image, x, y):
-    # Implement logic to organize images into dataset folders
-    # Placeholder logic
     folder_name = f"x_{x}_y_{y}"
     if not os.path.exists(folder_name):
         os.makedirs(folder_name)
