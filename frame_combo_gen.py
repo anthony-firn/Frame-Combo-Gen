@@ -193,20 +193,33 @@ def main():
 
         metadata_list = []
 
-        # Process each valid video
-        for video in valid_videos:
+        # Process each valid video with progress monitoring
+        for video in tqdm(valid_videos, desc="Processing videos"):
             video_path = os.path.join('./videos', video)
+            
+            # Extract metadata for the video
+            video_metadata = extract_metadata(video_path, None, None, None)
+            metadata_list.append(video_metadata)
+
+            # Split video into scenes
             scenes = extract_and_split_scenes(video_path, './scenes')
             for scene in scenes:
-                metadata = create_metadata(video_path, scene, x=2, y=2)  # Example values
-                metadata_list.append(metadata)
+                # Check if the scene is static
+                if is_static_scene(scene):
+                    logging.info(f"Discarding static scene: {scene}")
+                    os.remove(scene)  # Remove the static scene
+                    continue
 
-                # Process each scene
-                process_scene(scene, x=2, y=2)  # Example values
+                # Process each non-static scene
+                for x in [2, 4, 8, 16]:  # Example 'x' values
+                    for y in [2, 4, 8, 16]:  # Example 'y' values
+                        process_scene(scene, x, y)
+                        scene_metadata = create_metadata(video_path, scene, x, y)
+                        metadata_list.append(scene_metadata)
 
-            # Save metadata to a JSON file
-            with open('metadata.json', 'w') as f:
-                json.dump(metadata_list, f)
+        # Save metadata to a JSON file
+        with open('metadata.json', 'w') as f:
+            json.dump(metadata_list, f)
         
         logging.info(f"Successfully processed {len(valid_videos)} videos.")
     except Exception as e:
