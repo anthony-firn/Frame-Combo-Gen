@@ -17,7 +17,7 @@ THRESHOLD = 50  # Example threshold for static scene detection
 # Download videos using yt-dlp
 def download_videos(search_term, num_results):
     ydl_opts = {
-        'format': 'bestvideo',
+        'format': 'bestvideo[ext=mp4]',  # Ensure videos are downloaded in MP4 format
         'noplaylist': True,
         'outtmpl': './videos/%(title)s.%(ext)s',
         'quiet': False,
@@ -27,6 +27,23 @@ def download_videos(search_term, num_results):
 
     with ydl.YoutubeDL(ydl_opts) as ydl_instance:
         ydl_instance.download([search_term])
+
+# Extract metadata from video
+def extract_metadata(video_path):
+    cap = cv2.VideoCapture(video_path)
+    fps = int(cap.get(cv2.CAP_PROP_FPS))
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    duration = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) / fps
+    codec = int(cap.get(cv2.CAP_PROP_FOURCC))
+    cap.release()
+
+    return {
+        'fps': fps,
+        'resolution': f"{width}x{height}",
+        'duration': duration,
+        'codec': codec
+    }
 
 # Extract and split scenes using pyscenedetect
 def extract_and_split_scenes(video_path, output_dir):
