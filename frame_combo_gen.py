@@ -62,6 +62,7 @@ def extract_metadata(video_path, scene_path, x, y):
     scene_duration = int(scene_cap.get(cv2.CAP_PROP_FRAME_COUNT)) / fps
     scene_start_frame = scene_cap.get(cv2.CAP_PROP_POS_FRAMES)
     scene_end_frame = scene_start_frame + scene_duration * fps
+    scene_file_size = os.path.getsize(scene_path)
     scene_cap.release()
 
     # Return combined metadata
@@ -75,7 +76,8 @@ def extract_metadata(video_path, scene_path, x, y):
         'y_value': y,
         'scene_duration': scene_duration,
         'scene_start_frame': scene_start_frame,
-        'scene_end_frame': scene_end_frame
+        'scene_end_frame': scene_end_frame,
+        'scene_file_size': scene_file_size
     }
 
 # Function to extract and split scenes from a video using pyscenedetect
@@ -83,7 +85,7 @@ def extract_and_split_scenes(video_path, output_dir):
     # Initialize video and scene managers
     video_manager = VideoManager([video_path])
     scene_manager = SceneManager()
-    scene_manager.add_detector(ContentDetector())  # Add content detector for scene detection
+    scene_manager.add_detector(ContentDetector(threshold=30))  # Adjust the threshold as needed
     video_manager.set_downscale_factor()  # Downscale video for faster processing
     video_manager.start()  # Start video manager
     scene_manager.detect_scenes(frame_source=video_manager)  # Detect scenes
@@ -164,6 +166,9 @@ def extract_frames(scene_path, x, y):
 
 # Function to combine frames into a single image
 def combine_frames(frames):
+    # Check if there's an odd number of frames and handle accordingly
+    if len(frames) % 2 != 0:
+        frames.append(np.zeros_like(frames[-1]))  # Add a black frame to make it even
     return cv2.hconcat(frames)
 
 # Function to create metadata for each dataset
