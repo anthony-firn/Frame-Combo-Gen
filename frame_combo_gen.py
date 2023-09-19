@@ -116,6 +116,7 @@ def process_scene(scene_path, x, y):
     # Check if scene is static
     if is_static_scene(scene_path):
         logging.info(f"Discarding static scene: {scene_path}")
+        os.remove(scene_path)  # Remove the static scene
         return
 
     # Extract frames based on x and y
@@ -133,20 +134,26 @@ def extract_frames(scene_path, x, y):
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     extracted_frames = []
 
-    # Adjusted logic to handle different 'x' and 'y' values
+    # Extract every x frames
     for i in range(0, total_frames, x):
         cap.set(cv2.CAP_PROP_POS_FRAMES, i)
         ret, frame = cap.read()
         if ret:
             extracted_frames.append(frame)
-        for j in range(1, y):
-            cap.set(cv2.CAP_PROP_POS_FRAMES, i + j)
+    
+    # Extract y frames around each x frame
+    y_frames = []
+    for frame_index in extracted_frames:
+        start = max(frame_index - y // 2, 0)
+        end = min(frame_index + y // 2, total_frames - 1)
+        for j in range(start, end + 1):
+            cap.set(cv2.CAP_PROP_POS_FRAMES, j)
             ret, frame = cap.read()
             if ret:
-                extracted_frames.append(frame)
+                y_frames.append(frame)
 
     cap.release()
-    return extracted_frames
+    return extracted_frames + y_frames
 
 # Combine frames into a single image, handling different numbers of frames
 def combine_frames(frames):
