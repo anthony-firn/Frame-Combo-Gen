@@ -74,9 +74,13 @@ def extract_frames(scene_path, x, y):
     extracted_frames = []
 
     # Adjusted logic to handle different 'x' and 'y' values
-    for i in range(0, total_frames, x*y):
-        for j in range(y):
-            cap.set(cv2.CAP_PROP_POS_FRAMES, i + j*x)
+    for i in range(0, total_frames, x):
+        cap.set(cv2.CAP_PROP_POS_FRAMES, i)
+        ret, frame = cap.read()
+        if ret:
+            extracted_frames.append(frame)
+        for j in range(1, y):
+            cap.set(cv2.CAP_PROP_POS_FRAMES, i + j)
             ret, frame = cap.read()
             if ret:
                 extracted_frames.append(frame)
@@ -127,13 +131,14 @@ def main():
         # Extract metadata
         metadata = extract_metadata(video_path)
         if metadata['fps'] != FPS:
+            print(f"Skipping video {video} due to FPS mismatch.")
             continue
 
-        scenes = extract_scenes(video_path)
+        metadata_list.append(metadata)
+
+        scenes = extract_and_split_scenes(video_path, './scenes')
         for scene in scenes:
             process_scene(scene, x=2, y=2)  # Example values
-
-        metadata_list.append(metadata)
 
     # Save metadata to a JSON file
     with open('metadata.json', 'w') as f:
