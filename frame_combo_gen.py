@@ -9,6 +9,10 @@ import numpy as np
 from pyscenedetect.detectors import ContentDetector
 from pyscenedetect.detectors import ContentDetector
 from pyscenedetect.video_splitter import split_video_ffmpeg
+import logging
+
+# Initialize logging
+logging.basicConfig(filename='dataset_generator.log', level=logging.INFO)
 
 # Constants
 FPS = 30
@@ -52,6 +56,8 @@ def extract_metadata(video_path, scene_path, x, y):
 
     scene_cap = cv2.VideoCapture(scene_path)
     scene_duration = int(scene_cap.get(cv2.CAP_PROP_FRAME_COUNT)) / fps
+    scene_start_frame = scene_cap.get(cv2.CAP_PROP_POS_FRAMES)
+    scene_end_frame = scene_start_frame + scene_duration * fps
     scene_cap.release()
 
     return {
@@ -62,7 +68,9 @@ def extract_metadata(video_path, scene_path, x, y):
         'codec': codec,
         'x_value': x,
         'y_value': y,
-        'scene_duration': scene_duration
+        'scene_duration': scene_duration,
+        'scene_start_frame': scene_start_frame,
+        'scene_end_frame': scene_end_frame
     }
 
 # Extract and split scenes using pyscenedetect
@@ -155,29 +163,34 @@ def extract_metadata(video_path):
 
 # Main function
 def main():
-    search_terms = input("Enter the search terms separated by commas: ").split(',')
-    num_results = int(input("Enter the number of results to fetch per term: "))
+    try:
+        search_terms = input("Enter the search terms separated by commas: ").split(',')
+        num_results = int(input("Enter the number of results to fetch per term: "))
 
-    download_videos(search_terms, num_results)
+        download_videos(search_terms, num_results)
 
-    valid_videos = filter_videos_by_fps('./videos')
+        valid_videos = filter_videos_by_fps('./videos')
 
-    metadata_list = []
+        metadata_list = []
 
-    for video in tqdm(valid_videos, desc="Processing videos"):
-        video_path = os.path.join('./videos', video)
+        for video in tqdm(valid_videos, desc="Processing videos"):
+            video_path = os.path.join('./videos', video)
+            
+            scenes = extract_and_split_scenes(video_path, './scenes')
+            for scene in scenes:
+                process_scene(scene, x=2, y=2)  # Example values
+
+                # Extract metadata for each scene
+                metadata = extract_metadata(video_path, scene, x=2, y=2)
+                metadata_list.append(metadata)
+
+            # Save metadata to a JSON file
+            with open('metadata.json', 'w') as f:
+                json.dump(metadata_list, f)
         
-        scenes = extract_and_split_scenes(video_path, './scenes')
-        for scene in scenes:
-            process_scene(scene, x=2, y=2)  # Example values
-
-            # Extract metadata for each scene
-            metadata = extract_metadata(video_path, scene, x=2, y=2)
-            metadata_list.append(metadata)
-
-    # Save metadata to a JSON file
-    with open('metadata.json', 'w') as f:
-        json.dump(metadata_list, f)
+        logging.info(f"Successfully processed {len(valid_videos)} videos.")
+    except Exception as e:
+        logging.error(f"Error encountered: {str(e)}")
 
 if __name__ == "__main__":
     main()
