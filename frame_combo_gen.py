@@ -28,8 +28,8 @@ def download_videos(search_terms, num_results_per_term):
         for term in search_terms:
             ydl_instance.download([f"ytsearch{num_results_per_term}:{term}"])
 
-# Extract metadata from video
-def extract_metadata(video_path):
+# Extract metadata from video and scene
+def extract_metadata(video_path, scene_path, x, y):
     cap = cv2.VideoCapture(video_path)
     fps = int(cap.get(cv2.CAP_PROP_FPS))
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -38,11 +38,19 @@ def extract_metadata(video_path):
     codec = int(cap.get(cv2.CAP_PROP_FOURCC))
     cap.release()
 
+    scene_cap = cv2.VideoCapture(scene_path)
+    scene_duration = int(scene_cap.get(cv2.CAP_PROP_FRAME_COUNT)) / fps
+    scene_cap.release()
+
     return {
+        'source_url': video_path,
         'fps': fps,
         'resolution': f"{width}x{height}",
         'duration': duration,
-        'codec': codec
+        'codec': codec,
+        'x_value': x,
+        'y_value': y,
+        'scene_duration': scene_duration
     }
 
 # Extract and split scenes using pyscenedetect
@@ -145,17 +153,13 @@ def main():
     for video in tqdm(os.listdir('./videos'), desc="Processing videos"):
         video_path = os.path.join('./videos', video)
         
-        # Extract metadata
-        metadata = extract_metadata(video_path)
-        if metadata['fps'] != FPS:
-            print(f"Skipping video {video} due to FPS mismatch.")
-            continue
-
-        metadata_list.append(metadata)
-
         scenes = extract_and_split_scenes(video_path, './scenes')
         for scene in scenes:
             process_scene(scene, x=2, y=2)  # Example values
+
+            # Extract metadata for each scene
+            metadata = extract_metadata(video_path, scene, x=2, y=2)
+            metadata_list.append(metadata)
 
     # Save metadata to a JSON file
     with open('metadata.json', 'w') as f:
