@@ -6,6 +6,7 @@ import cv2
 import json
 from tqdm import tqdm
 import numpy as np
+from pyscenedetect.detectors import ContentDetector
 
 # Constants
 FPS = 30
@@ -25,15 +26,23 @@ def download_videos(search_term, num_results):
     with ydl.YoutubeDL(ydl_opts) as ydl_instance:
         ydl_instance.download([search_term])
 
-# Extract scenes using pyscenedetect
-def extract_scenes(video_path):
+# Extract and split scenes using pyscenedetect
+def extract_and_split_scenes(video_path, output_dir):
     video_manager = VideoManager([video_path])
     scene_manager = SceneManager()
-    scene_manager.add_detector(detection.ContentDetector())
+    scene_manager.add_detector(ContentDetector())
     video_manager.set_downscale_factor()
     video_manager.start()
     scene_manager.detect_scenes(frame_source=video_manager)
-    return scene_manager.get_scene_list()
+    
+    # Split video into scenes and save them
+    scene_list = scene_manager.get_scene_list(video_path)
+    for i, scene in enumerate(scene_list):
+        start, end = scene
+        video_manager.save_frames(output_dir, frame_range=(start.get_frames(), end.get_frames()), 
+                                  file_name=f"scene_{i}_%05d.jpg")
+
+    return [os.path.join(output_dir, f"scene_{i}.mp4") for i in range(len(scene_list))]
 
 # Check if scene is static
 def is_static_scene(scene):
@@ -60,12 +69,19 @@ def process_scene(scene, x, y):
     organize_images(combined_image, x, y)
 
 # Extract frames from a scene based on x and y values
-def extract_frames(scene, x, y):
-    # Implement frame extraction logic based on x and y values
-    # Placeholder logic
+def extract_frames(scene_path, x, y):
+    cap = cv2.VideoCapture(scene_path)
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     extracted_frames = []
-    for i in range(0, len(scene), x):
-        extracted_frames.append(scene[i:i+y])
+
+    for i in range(0, total_frames, x):
+        for j in range(y):
+            cap.set(cv2.CAP_PROP_POS_FRAMES, i + j)
+            ret, frame = cap.read()
+            if ret:
+                extracted_frames.append(frame)
+
+    cap.release()
     return extracted_frames
 
 # Combine frames into a single image
