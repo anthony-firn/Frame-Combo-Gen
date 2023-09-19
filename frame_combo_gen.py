@@ -5,10 +5,11 @@ import os
 import cv2
 import json
 from tqdm import tqdm
+import numpy as np
 
 # Constants
 FPS = 30
-THRESHOLD = ...  # Define the threshold for static scene detection
+THRESHOLD = 50  # Example threshold for static scene detection
 
 # Download videos using yt-dlp
 def download_videos(search_term, num_results):
@@ -36,9 +37,12 @@ def extract_scenes(video_path):
 
 # Check if scene is static
 def is_static_scene(scene):
-    # Calculate difference between consecutive frames
-    # If difference is below THRESHOLD, return True
-    pass
+    total_diff = 0
+    for i in range(1, len(scene)):
+        diff = cv2.absdiff(scene[i-1], scene[i])
+        total_diff += np.sum(diff)
+    avg_diff = total_diff / len(scene)
+    return avg_diff < THRESHOLD
 
 # Process each scene
 def process_scene(scene, x, y):
@@ -50,9 +54,20 @@ def process_scene(scene, x, y):
 
 # Extract metadata from video
 def extract_metadata(video_path):
-    # Use libraries or tools to extract metadata
-    # Return metadata as a dictionary or JSON object
-    pass
+    cap = cv2.VideoCapture(video_path)
+    fps = int(cap.get(cv2.CAP_PROP_FPS))
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    duration = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) / fps
+    codec = int(cap.get(cv2.CAP_PROP_FOURCC))
+    cap.release()
+
+    return {
+        'fps': fps,
+        'resolution': f"{width}x{height}",
+        'duration': duration,
+        'codec': codec
+    }
 
 # Main function
 def main():
