@@ -14,7 +14,7 @@ from pyscenedetect.video_splitter import split_video_ffmpeg
 FPS = 30
 THRESHOLD = 50  # Example threshold for static scene detection
 
-# Download videos using yt-dlp
+# Download videos using yt-dlp for multiple search terms
 def download_videos(search_terms, num_results_per_term):
     ydl_opts = {
         'format': 'bestvideo[ext=mp4]',  # Ensure videos are downloaded in MP4 format
@@ -27,6 +27,18 @@ def download_videos(search_terms, num_results_per_term):
     with ydl.YoutubeDL(ydl_opts) as ydl_instance:
         for term in search_terms:
             ydl_instance.download([f"ytsearch{num_results_per_term}:{term}"])
+
+# Filter videos based on frame rate
+def filter_videos_by_fps(directory, target_fps=FPS):
+    valid_videos = []
+    for video in os.listdir(directory):
+        video_path = os.path.join(directory, video)
+        cap = cv2.VideoCapture(video_path)
+        fps = int(cap.get(cv2.CAP_PROP_FPS))
+        cap.release()
+        if fps == target_fps:
+            valid_videos.append(video_path)
+    return valid_videos
 
 # Extract metadata from video and scene
 def extract_metadata(video_path, scene_path, x, y):
@@ -143,14 +155,16 @@ def extract_metadata(video_path):
 
 # Main function
 def main():
-    search_term = input("Enter the search term: ")
-    num_results = int(input("Enter the number of results to fetch: "))
+    search_terms = input("Enter the search terms separated by commas: ").split(',')
+    num_results = int(input("Enter the number of results to fetch per term: "))
 
-    download_videos(search_term, num_results)
+    download_videos(search_terms, num_results)
+
+    valid_videos = filter_videos_by_fps('./videos')
 
     metadata_list = []
 
-    for video in tqdm(os.listdir('./videos'), desc="Processing videos"):
+    for video in tqdm(valid_videos, desc="Processing videos"):
         video_path = os.path.join('./videos', video)
         
         scenes = extract_and_split_scenes(video_path, './scenes')
