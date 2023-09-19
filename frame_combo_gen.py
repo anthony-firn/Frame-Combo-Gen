@@ -88,11 +88,12 @@ def extract_and_split_scenes(video_path, output_dir):
     
     return [os.path.join(output_dir, f"scene_{i}.mp4") for i in range(len(scene_list))]
 
-# Check if scene is static
+# Check if scene is static based on average frame difference
 def is_static_scene(scene_path):
     cap = cv2.VideoCapture(scene_path)
     total_diff = 0
     prev_frame = None
+    frame_count = 0
 
     while True:
         ret, frame = cap.read()
@@ -101,11 +102,12 @@ def is_static_scene(scene_path):
 
         if prev_frame is not None:
             diff = cv2.absdiff(prev_frame, frame)
-            total_diff += np.sum(diff)
+            total_diff += np.mean(diff)
+            frame_count += 1
 
         prev_frame = frame
 
-    avg_diff = total_diff / (cap.get(cv2.CAP_PROP_FRAME_COUNT) - 1)
+    avg_diff = total_diff / frame_count
     cap.release()
     return avg_diff < THRESHOLD
 
@@ -146,9 +148,15 @@ def extract_frames(scene_path, x, y):
     cap.release()
     return extracted_frames
 
-# Combine frames into a single image
+# Combine frames into a single image, handling different numbers of frames
 def combine_frames(frames):
-    return cv2.hconcat(frames)
+    if len(frames) == 2:
+        return cv2.hconcat([frames[0], frames[1]])
+    elif len(frames) == 3:
+        return cv2.hconcat([frames[0], frames[1], frames[2]])
+    # Extend as needed for different numbers of frames
+    else:
+        return None  # Return None if the number of frames doesn't match expected values
 
 # Organize combined images into dataset folders
 def organize_images(image, x, y):
