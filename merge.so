@@ -89,22 +89,35 @@ def extract_and_split_scenes(video_path, output_dir):
     return [os.path.join(output_dir, f"scene_{i}.mp4") for i in range(len(scene_list))]
 
 # Check if scene is static
-def is_static_scene(scene):
+def is_static_scene(scene_path):
+    cap = cv2.VideoCapture(scene_path)
     total_diff = 0
-    for i in range(1, len(scene)):
-        diff = cv2.absdiff(scene[i-1], scene[i])
-        total_diff += np.sum(diff)
-    avg_diff = total_diff / len(scene)
+    prev_frame = None
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        if prev_frame is not None:
+            diff = cv2.absdiff(prev_frame, frame)
+            total_diff += np.sum(diff)
+
+        prev_frame = frame
+
+    avg_diff = total_diff / (cap.get(cv2.CAP_PROP_FRAME_COUNT) - 1)
+    cap.release()
     return avg_diff < THRESHOLD
 
 # Process each scene
-def process_scene(scene, x, y):
-    # Extract frames based on x and y
-    frames = extract_frames(scene, x, y)
-    
+def process_scene(scene_path, x, y):
     # Check if scene is static
-    if is_static_scene(frames):
+    if is_static_scene(scene_path):
+        logging.info(f"Discarding static scene: {scene_path}")
         return
+
+    # Extract frames based on x and y
+    frames = extract_frames(scene_path, x, y)
     
     # Combine frames into single images
     combined_image = combine_frames(frames)
